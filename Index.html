@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Gastos Familiar</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F6F2;
+    --surface: #FFFFFF;
+    --surface2: #F0EEE9;
+    --green: #3D7A5E;
+    --green-light: #E8F3EE;
+    --red: #C95B45;
+    --red-light: #FAEAE7;
+    --amber: #C9883A;
+    --amber-light: #FDF3E5;
+    --blue: #3A6BC9;
+    --blue-light: #E5EDFD;
+    --text: #1A1A1A;
+    --text-muted: #6B6B6B;
+    --border: #E2E0DA;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0 0 60px 0;
+  }
+
+  header {
+    background: var(--green);
+    color: white;
+    padding: 28px 24px 24px;
+    text-align: center;
+  }
+
+  header h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  header p {
+    font-size: 0.82rem;
+    opacity: 0.8;
+    margin-top: 4px;
+  }
+
+  .month-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .month-selector button {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .month-selector button:hover { background: rgba(255,255,255,0.35); }
+
+  .month-selector span {
+    font-weight: 600;
+    font-size: 1rem;
+    min-width: 160px;
+    text-align: center;
+  }
+
+  /* Health bar */
+  .health-bar-wrapper {
+    background: var(--surface);
+    margin: 0 16px;
+    border-radius: 0 0 16px 16px;
+    padding: 16px 20px 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .health-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .health-bar-track {
+    height: 12px;
+    background: var(--surface2);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .health-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.6s ease, background 0.4s ease;
+  }
+
+  .health-msg {
+    font-size: 0.78rem;
+    margin-top: 8px;
+    text-align: center;
+    font-weight: 500;
+  }
+
+  /* Summary cards */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 20px 16px 0;
+  }
+
+  .summary-card {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 14px 12px;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+
+  .summary-card .label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .summary-card .amount {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .summary-card.income .amount { color: var(--green); }
+  .summary-card.spent .amount { color: var(--red); }
+  .summary-card.balance .amount { color: var(--blue); }
+
+  /* Sections */
+  .section {
+    margin: 20px 16px 0;
+  }
+
+  .section-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    padding-left: 4px;
+  }
+
+  .card {
+    background: var(--surface);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  /* Income row */
+  .income-row {
+    display: flex;
+    align-items: center;
+    padding: 16px 18px;
+    gap: 14px;
+  }
+
+  .income-row .icon {
+    font-size: 1.4rem;
+    width: 40px;
+    text-align: center;
+  }
+
+  .income-row .info { flex: 1; }
+  .income-row .info .name { font-weight: 600; font-size: 0.9rem; }
+  .income-row .info .sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+  /* Expense rows */
+  .expense-row {
+    display: flex;
+    align-items: center;
+    padding: 13px 18px;
+    gap: 14px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .expense-row:last-child { border-bottom: none; }
+  .expense-row:active { background: var(--surface2); }
+
+  .expense-row .icon {
+    font-size: 1.2rem;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .expense-row .info { flex: 1; min-width: 0; }
+  .expense-row .info .name { font-weight: 500; font-size: 0.88rem; }
+  .expense-row .info .sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 1px; }
+
+  /* Inputs */
+  .amount-input {
+    background: var(--surface2);
+    border: 1.5px solid transparent;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text);
+    width: 110px;
+    text-align: right;
+    transition: border-color 0.2s, background 0.2s;
+    -moz-appearance: textfield;
+  }
+  .amount-input::-webkit-outer-spin-button,
+  .amount-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .amount-input:focus {
+    outline: none;
+    border-color: var(--green);
+    background: white;
+  }
+
+  .income-input {
+    background: var(--green-light);
+    border-color: transparent;
+    color: var(--green);
+    font-size: 1.1rem;
+    width: 140px;
+  }
+  .income-input:focus { border-color: var(--green); }
+
+  .saving-input {
+    background: var(--blue-light);
+    border-color: transparent;
+    color: var(--blue);
+  }
+  .saving-input:focus { border-color: var(--blue); }
+
+  /* Currency prefix */
+  .input-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  .currency {
+    position: absolute;
+    left: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    pointer-events: none;
+    color: var(--text-muted);
+  }
+  .input-wrap input { padding-left: 22px; }
+
+  /* Savings row special */
+  .saving-row {
+    background: var(--blue-light);
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 10px;
+  }
+  .saving-row .icon { font-size: 1.4rem; }
+  .saving-row .info { flex: 1; }
+  .saving-row .info .name { font-weight: 600; font-size: 0.9rem; color: var(--blue); }
+  .saving-row .info .sub { font-size: 0.72rem; color: #5580C9; margin-top: 2px; }
+
+  /* Extra expenses */
+  .add-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: 1.5px dashed var(--border);
+    border-radius: 12px;
+    padding: 12px 18px;
+    width: 100%;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.84rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-top: 10px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .add-btn:hover { border-color: var(--green); color: var(--green); }
+
+  /* Extra expense item */
+  .extra-row {
+    display: flex;
+    align-items: center;
+    padding: 11px 18px;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .extra-row:last-child { border-bottom: none; }
+
+  .extra-name {
+    flex: 1;
+    background: var(--surface2);
+    border: 1.5px solid transparent;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.84rem;
+    color: var(--text);
+  }
+  .extra-name:focus { outline: none; border-color: var(--amber); background: white; }
+
+  .remove-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px;
+    border-radius: 6px;
+    transition: color 0.2s;
+    line-height: 1;
+  }
+  .remove-btn:hover { color: var(--red); }
+
+  /* Reset */
+  .reset-btn {
+    display: block;
+    margin: 24px auto 0;
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 24px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .reset-btn:hover { border-color: var(--red); color: var(--red); }
+
+  /* Icon bg colors */
+  .ic-red { background: var(--red-light); }
+  .ic-amber { background: var(--amber-light); }
+  .ic-green { background: var(--green-light); }
+  .ic-blue { background: var(--blue-light); }
+  .ic-purple { background: #F0EAFD; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>💰 Control de Gastos</h1>
+  <p>Llevan el control juntos, ahorran juntos</p>
+  <div class="month-selector">
+    <button onclick="changeMonth(-1)">‹</button>
+    <span id="monthLabel"></span>
+    <button onclick="changeMonth(1)">›</button>
+  </div>
+</header>
+
+<!-- Health bar -->
+<div class="health-bar-wrapper">
+  <div class="health-label">
+    <span>Salud financiera del mes</span>
+    <span id="healthPct">—</span>
+  </div>
+  <div class="health-bar-track">
+    <div class="health-bar-fill" id="healthFill" style="width:0%"></div>
+  </div>
+  <div class="health-msg" id="healthMsg">Ingresa tus datos para ver el estado</div>
+</div>
+
+<!-- Summary -->
+<div class="summary-grid">
+  <div class="summary-card income">
+    <div class="label">Ingresos</div>
+    <div class="amount" id="sumIncome">$0</div>
+  </div>
+  <div class="summary-card spent">
+    <div class="label">Gastos</div>
+    <div class="amount" id="sumSpent">$0</div>
+  </div>
+  <div class="summary-card balance">
+    <div class="label">Diferencia</div>
+    <div class="amount" id="sumBalance">$0</div>
+  </div>
+</div>
+
+<!-- Income -->
+<div class="section">
+  <div class="section-title">Ingresos</div>
+  <div class="card">
+    <div class="income-row">
+      <div class="icon">💵</div>
+      <div class="info">
+        <div class="name">Ingreso del mes</div>
+        <div class="sub">Salario + ingresos adicionales</div>
+      </div>
+      <div class="input-wrap">
+        <span class="currency">$</span>
+        <input class="amount-input income-input" type="number" id="income" placeholder="0" min="0" oninput="recalc()">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Fixed expenses -->
+<div class="section">
+  <div class="section-title">Gastos fijos</div>
+  <div class="card" id="fixedList">
+
+    <div class="expense-row">
+      <div class="icon ic-red">🏠</div>
+      <div class="info"><div class="name">Renta / Hipoteca</div><div class="sub">Vivienda</div></div>
+      <div class="input-wrap"><span class="currency">$</span>
+        <input class="amount-input" type="number" placeholder="0" min="0" oninput="recalc()">
+      </div>
+    </div>
+
+    <div class="expense-row">
+      <div class="icon ic-amber">💧</div>
+      <div class="info"><div class="name">Agua</div><div class="sub">Servicio público</div></div>
+      <div class="input-wrap"><span class="currency">$</span>
+        <input class="amount-input" type="number" placeholder="0" min="0" oninput="recalc()">
+      </div>
+    </div>
+
+    <div class="expense-row">
+      <div class="icon ic-amber">⚡</div>
+      <div class="info"><div class="name">Electricidad</div><div class="sub">Servicio público</div></div>
+      <div class="input-wrap"><span class="currency">$</span>
+        <input class="amount-input" type="number" placeholder="0" min="0" oninput="recalc()">
+      </div>
+    </div>
+
+    <div class="expense-row">
+      <div class="icon ic-blue">📱</div>
+      <div class="info"><div class="name">Factura móvil</div><div class="sub">Telefonía / internet</div></div>
+      <div class="input-wrap"><span class="currency">$</span>
+        <input class="amount-input" type="number" placeholder="0" min="0" oninput="recalc()">
+      </div>
+    </div>
+
+    <div class="expense-row">
+      <div class="icon ic-red">💳</div>
+      <div class="info"><div class="name">Cuota de crédito</div><div class="sub">Préstamos / tarjeta</div></div>
+      <div class="input-wrap"><span class="currency">$</span>
+        <input class="amount-input" type="number" placeholder="0" min="0" oninput="recalc()">
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Variable expenses -->
+<div class="section">
+  <div class="section-title">Gastos variables</div>
+  <div class="card">
+
+    <div class="expense-row">
+      <div class="icon ic-green">🛒</div>
+      <div class="info"><div class="name">Comida / supermercado</div><div class="sub">Alimentación</div></div>
+      <div class="input-wrap"><span class="currency">$</span>
+        <input class="amount-input" type="number" placeholder="0" min="0" oninput="recalc()">
+      </div>
+    </div>
+
+    <div class="expense-row">
+      <div class="icon ic-amber">🚌</div>
+      <div class="info"><div class="name">Transporte / combustible</div><div class="sub">Movilidad</div></div>
+      <div class="input-wrap"><span class="currency">$</span>
+        <input class="amount-input" type="number" placeholder="0" min="0" oninput="recalc()">
+      </div>
+    </div>
+
+    <div class="expense-row">
+      <div class="icon ic-green">🍽️</div>
+      <div class="info"><div class="name">Restaurantes / salidas</div><div class="sub">Ocio y comidas fuera</div></div>
+      <div class="input-wrap"><span class="currency">$</span>
+        <input class="amount-input" type="number" placeholder="0" min="0" oninput="recalc()">
+      </div>
+    </div>
+
+    <div class="expense-row">
+      <div class="icon ic-purple">🎬</div>
+      <div class="info"><div class="name">Entretenimiento</div><div class="sub">Streaming, salidas, hobbies</div></div>
+      <div class="input-wrap"><span class="currency">$</span>
+        <input class="amount-input" type="number" placeholder="0" min="0" oninput="recalc()">
+      </div>
+    </div>
+
+    <div class="expense-row">
+      <div class="icon ic-red">💊</div>
+      <div class="info"><div class="name">Salud / medicamentos</div><div class="sub">Médico, farmacia</div></div>
+      <div class="input-wrap"><span class="currency">$</span>
+        <input class="amount-input" type="number" placeholder="0" min="0" oninput="recalc()">
+      </div>
+    </div>
+
+    <div class="expense-row">
+      <div class="icon ic-blue">👕</div>
+      <div class="info"><div class="name">Ropa y personal</div><div class="sub">Vestimenta, higiene</div></div>
+      <div class="input-wrap"><span class="currency">$</span>
+        <input class="amount-input" type="number" placeholder="0" min="0" oninput="recalc()">
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Extra expenses -->
+<div class="section">
+  <div class="section-title">Gastos extra</div>
+  <div class="card" id="extraCard" style="display:none">
+    <div id="extraList"></div>
+  </div>
+  <button class="add-btn" onclick="addExtra()">
+    ＋ Agregar otro gasto
+  </button>
+</div>
+
+<!-- Saving -->
+<div class="section">
+  <div class="section-title">Ahorro</div>
+  <div class="saving-row">
+    <div class="icon">🐷</div>
+    <div class="info">
+      <div class="name">Meta de ahorro</div>
+      <div class="sub">¿Cuánto quieren guardar este mes?</div>
+    </div>
+    <div class="input-wrap"><span class="currency">$</span>
+      <input class="amount-input saving-input" type="number" id="saving" placeholder="0" min="0" oninput="recalc()">
+    </div>
+  </div>
+  <div id="savingAlert" style="display:none; margin-top:10px; padding:12px 16px; border-radius:12px; font-size:0.82rem; font-weight:500;"></div>
+</div>
+
+<button class="reset-btn" onclick="resetAll()">🔄 Reiniciar mes</button>
+
+<script>
+  const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  let currentDate = new Date();
+  let currentMonth = currentDate.getMonth();
+  let currentYear = currentDate.getFullYear();
+  let extraCount = 0;
+
+  function updateMonthLabel() {
+    document.getElementById('monthLabel').textContent = `${MONTHS[currentMonth]} ${currentYear}`;
+  }
+
+  function changeMonth(dir) {
+    currentMonth += dir;
+    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+    updateMonthLabel();
+    saveData();
+    loadData();
+  }
+
+  function fmt(n) {
+    return '$' + Math.abs(n).toLocaleString('es', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+
+  function getStorageKey() {
+    return `budget_${currentYear}_${currentMonth}`;
+  }
+
+  function getAllInputs() {
+    return document.querySelectorAll('input[type="number"]');
+  }
+
+  function saveData() {
+    const data = {};
+    getAllInputs().forEach((inp, i) => { data[inp.id || `inp_${i}`] = inp.value; });
+    // also save extra rows
+    const extras = [];
+    document.querySelectorAll('.extra-row').forEach(row => {
+      const name = row.querySelector('.extra-name').value;
+      const amt = row.querySelector('.amount-input').value;
+      extras.push({ name, amt });
+    });
+    data.__extras = JSON.stringify(extras);
+    localStorage.setItem(getStorageKey(), JSON.stringify(data));
+  }
+
+  function loadData() {
+    // clear extras
+    document.getElementById('extraList').innerHTML = '';
+    extraCount = 0;
+    document.getElementById('extraCard').style.display = 'none';
+
+    const raw = localStorage.getItem(getStorageKey());
+    if (!raw) { recalc(); return; }
+    const data = JSON.parse(raw);
+
+    // restore extras first
+    if (data.__extras) {
+      const extras = JSON.parse(data.__extras);
+      extras.forEach(e => addExtra(e.name, e.amt));
+    }
+
+    getAllInputs().forEach((inp, i) => {
+      const key = inp.id || `inp_${i}`;
+      if (data[key] !== undefined) inp.value = data[key];
+    });
+    recalc();
+  }
+
+  function recalc() {
+    const income = parseFloat(document.getElementById('income').value) || 0;
+    const saving = parseFloat(document.getElementById('saving').value) || 0;
+
+    let totalExpenses = 0;
+    document.querySelectorAll('input[type="number"]').forEach(inp => {
+      if (inp.id !== 'income' && inp.id !== 'saving') {
+        totalExpenses += parseFloat(inp.value) || 0;
+      }
+    });
+
+    const balance = income - totalExpenses - saving;
+
+    document.getElementById('sumIncome').textContent = fmt(income);
+    document.getElementById('sumSpent').textContent = fmt(totalExpenses);
+
+    const balEl = document.getElementById('sumBalance');
+    balEl.textContent = (balance >= 0 ? '' : '-') + fmt(balance);
+    balEl.style.color = balance >= 0 ? 'var(--green)' : 'var(--red)';
+
+    // Health bar
+    let pct = 0, barColor = '#C95B45', msg = '';
+    if (income > 0) {
+      pct = Math.min(100, Math.max(0, (balance / income) * 100));
+      if (balance < 0) {
+        pct = 0;
+        barColor = '#C95B45';
+        msg = '⚠️ Están gastando más de lo que ganan este mes';
+      } else if (pct < 10) {
+        barColor = '#C95B45';
+        msg = '😰 Muy poco margen — intenten reducir algún gasto';
+      } else if (pct < 20) {
+        barColor = '#C9883A';
+        msg = '😐 Van bien pero el margen es ajustado';
+      } else if (pct < 35) {
+        barColor = '#7aad3a';
+        msg = '😊 Buen control — van por buen camino';
+      } else {
+        barColor = '#3D7A5E';
+        msg = '🎉 ¡Excelente! Tienen un gran margen de ahorro';
+      }
+    } else {
+      msg = 'Ingresa tus ingresos para ver el estado';
+    }
+
+    const fill = document.getElementById('healthFill');
+    fill.style.width = pct + '%';
+    fill.style.background = barColor;
+    document.getElementById('healthPct').textContent = income > 0 ? Math.round(pct) + '%' : '—';
+    document.getElementById('healthMsg').textContent = msg;
+    document.getElementById('healthMsg').style.color = barColor;
+
+    // Saving alert
+    const savingAlert = document.getElementById('savingAlert');
+    if (saving > 0 && income > 0) {
+      if (totalExpenses + saving > income) {
+        savingAlert.style.display = 'block';
+        savingAlert.style.background = 'var(--red-light)';
+        savingAlert.style.color = 'var(--red)';
+        savingAlert.textContent = `⚠️ Con esta meta de ahorro el presupuesto no alcanza. Te faltan ${fmt(Math.abs(balance))}.`;
+      } else {
+        savingAlert.style.display = 'block';
+        savingAlert.style.background = 'var(--blue-light)';
+        savingAlert.style.color = 'var(--blue)';
+        const savingPct = Math.round((saving / income) * 100);
+        savingAlert.textContent = `✅ ¡Bien! Están ahorrando el ${savingPct}% del ingreso este mes.`;
+      }
+    } else {
+      savingAlert.style.display = 'none';
+    }
+
+    saveData();
+  }
+
+  function addExtra(name = '', amt = '') {
+    const card = document.getElementById('extraCard');
+    const list = document.getElementById('extraList');
+    card.style.display = 'block';
+
+    const row = document.createElement('div');
+    row.className = 'extra-row';
+    row.innerHTML = `
+      <div class="icon ic-amber">📌</div>
+      <input class="extra-name" type="text" placeholder="Nombre del gasto" value="${name}" oninput="recalc()">
+      <div class="input-wrap"><span class="currency">$</span>
+        <input class="amount-input" type="number" placeholder="0" min="0" value="${amt}" oninput="recalc()">
+      </div>
+      <button class="remove-btn" onclick="removeExtra(this)">✕</button>
+    `;
+    list.appendChild(row);
+    extraCount++;
+    recalc();
+  }
+
+  function removeExtra(btn) {
+    const row = btn.closest('.extra-row');
+    row.remove();
+    extraCount--;
+    if (extraCount === 0) document.getElementById('extraCard').style.display = 'none';
+    recalc();
+  }
+
+  function resetAll() {
+    if (!confirm('¿Reiniciar todos los datos de este mes?')) return;
+    localStorage.removeItem(getStorageKey());
+    document.getElementById('extraList').innerHTML = '';
+    extraCount = 0;
+    document.getElementById('extraCard').style.display = 'none';
+    getAllInputs().forEach(inp => inp.value = '');
+    recalc();
+  }
+
+  // Assign IDs to fixed inputs for storage
+  document.querySelectorAll('input[type="number"]').forEach((inp, i) => {
+    if (!inp.id) inp.id = `inp_${i}`;
+  });
+
+  updateMonthLabel();
+  loadData();
+</script>
+</body>
+</html>
